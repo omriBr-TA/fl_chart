@@ -1,6 +1,7 @@
 import 'package:fl_chart/src/chart/pie_chart/pie_chart_data.dart';
 import 'package:fl_chart/src/chart/pie_chart/pie_chart_renderer.dart';
 import 'package:flutter/material.dart';
+import 'dart:ui' as ui;
 
 /// Renders a pie chart as a widget, using provided [PieChartData].
 class PieChart extends ImplicitlyAnimatedWidget {
@@ -10,7 +11,9 @@ class PieChart extends ImplicitlyAnimatedWidget {
   /// also you can change the [swapAnimationCurve]
   /// which default is [Curves.linear].
   const PieChart(
-    this.data, {
+    this.data,
+    this.image,
+     {
     super.key,
     Duration swapAnimationDuration = defaultDuration,
     Curve swapAnimationCurve = Curves.linear,
@@ -25,16 +28,21 @@ class PieChart extends ImplicitlyAnimatedWidget {
   /// Determines how the [PieChart] should be look like.
   final PieChartData data;
 
+  final ui.Image image;
+
   /// Creates a [_PieChartState]
   @override
-  _PieChartState createState() => _PieChartState();
+  _PieChartState createState() => _PieChartState(image: image);
 }
 
 class _PieChartState extends AnimatedWidgetBaseState<PieChart> {
+  _PieChartState({
+    required this.image
+  }): super();
   /// We handle under the hood animations (implicit animations) via this tween,
   /// it lerps between the old [PieChartData] to the new one.
   PieChartDataTween? _pieChartDataTween;
-
+  ui.Image image;
   @override
   void initState() {
     /// Make sure that [_widgetsPositionHandler] is updated.
@@ -60,6 +68,7 @@ class _PieChartState extends AnimatedWidgetBaseState<PieChart> {
     return PieChartLeaf(
       data: _pieChartDataTween!.evaluate(animation),
       targetData: showingData,
+      image: image,
     );
   }
 

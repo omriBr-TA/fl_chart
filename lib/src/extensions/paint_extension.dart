@@ -11,7 +11,7 @@ extension PaintExtension on Paint {
 
   void setColorOrGradient(Color? color, Gradient? gradient, Rect rect) {
     if (gradient != null) {
-      this.color = Colors.black;
+      this.color = Color(0xFF18D1D1);
       shader = gradient.createShader(rect);
     } else {
       this.color = color ?? Colors.transparent;

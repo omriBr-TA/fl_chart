@@ -7,6 +7,7 @@ import 'package:fl_chart/src/utils/canvas_wrapper.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
+import 'dart:ui' as ui;
 
 // coverage:ignore-start
 
@@ -16,14 +17,16 @@ class PieChartLeaf extends MultiChildRenderObjectWidget {
     super.key,
     required this.data,
     required this.targetData,
+    required this.image
   }) : super(children: targetData.sections.toWidgets());
-
+  final ui.Image image;
   final PieChartData data;
   final PieChartData targetData;
 
   @override
   RenderPieChart createRenderObject(BuildContext context) => RenderPieChart(
         context,
+        image,
         data,
         targetData,
         MediaQuery.of(context).textScaler,
@@ -48,14 +51,16 @@ class RenderPieChart extends RenderBaseChart<PieTouchResponse>
     implements MouseTrackerAnnotation {
   RenderPieChart(
     BuildContext context,
+    this.image,
     PieChartData data,
     PieChartData targetData,
     TextScaler textScaler,
   )   : _data = data,
         _targetData = targetData,
         _textScaler = textScaler,
+        _painter = PieChartPainter(image: image),
         super(targetData.pieTouchData, context);
-
+  final ui.Image image;
   PieChartData get data => _data;
   PieChartData _data;
 
@@ -68,6 +73,9 @@ class RenderPieChart extends RenderBaseChart<PieTouchResponse>
 
   PieChartData get targetData => _targetData;
   PieChartData _targetData;
+
+  PieChartPainter _painter;
+  PieChartPainter get painter => _painter;
 
   set targetData(PieChartData value) {
     if (_targetData == value) return;
@@ -90,8 +98,7 @@ class RenderPieChart extends RenderBaseChart<PieTouchResponse>
   @visibleForTesting
   Size? mockTestSize;
 
-  @visibleForTesting
-  PieChartPainter painter = PieChartPainter();
+
 
   PaintHolder<PieChartData> get paintHolder =>
       PaintHolder(data, targetData, textScaler);

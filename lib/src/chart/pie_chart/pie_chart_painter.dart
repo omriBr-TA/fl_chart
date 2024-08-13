@@ -1,5 +1,6 @@
 import 'dart:math' as math;
-
+import 'dart:typed_data';
+import 'dart:ui' as ui;
 import 'package:fl_chart/fl_chart.dart';
 import 'package:fl_chart/src/chart/base/base_chart/base_chart_painter.dart';
 import 'package:fl_chart/src/chart/base/line.dart';
@@ -8,6 +9,7 @@ import 'package:fl_chart/src/extensions/paint_extension.dart';
 import 'package:fl_chart/src/utils/canvas_wrapper.dart';
 import 'package:fl_chart/src/utils/utils.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 
 /// Paints [PieChartData] in the canvas, it can be used in a [CustomPainter]
 class PieChartPainter extends BaseChartPainter<PieChartData> {
@@ -19,7 +21,10 @@ class PieChartPainter extends BaseChartPainter<PieChartData> {
   /// [textScale] used for scaling texts inside the chart,
   /// parent can use [MediaQuery.textScaleFactor] to respect
   /// the system's font size.
-  PieChartPainter() : super() {
+  /// 
+  final ui.Image? image;
+
+  PieChartPainter({required this.image}) : super() {
     _sectionPaint = Paint()..style = PaintingStyle.stroke;
 
     _sectionSaveLayerPaint = Paint();
@@ -51,7 +56,7 @@ class PieChartPainter extends BaseChartPainter<PieChartData> {
     final centerRadius = calculateCenterRadius(canvasWrapper.size, holder);
 
     drawCenterSpace(canvasWrapper, centerRadius, holder);
-    drawSections(canvasWrapper, sectionsAngle, centerRadius, holder);
+    drawSections(canvasWrapper, sectionsAngle, centerRadius, holder,image);
     drawTexts(context, canvasWrapper, holder, centerRadius);
   }
 
@@ -90,18 +95,21 @@ class PieChartPainter extends BaseChartPainter<PieChartData> {
     List<double> sectionsAngle,
     double centerRadius,
     PaintHolder<PieChartData> holder,
-  ) {
+    ui.Image? image
+  ) { 
     final data = holder.data;
     final viewSize = canvasWrapper.size;
 
     final center = Offset(viewSize.width / 2, viewSize.height / 2);
 
     var tempAngle = data.startDegreeOffset;
+    
 
     for (var i = 0; i < data.sections.length; i++) {
       final section = data.sections[i];
       final sectionDegree = sectionsAngle[i];
 
+      print("section: $i value: ${section.value}");
       if (sectionDegree == 360) {
         final radius = centerRadius + section.radius / 2;
         final rect = Rect.fromCircle(center: center, radius: radius);
@@ -113,6 +121,7 @@ class PieChartPainter extends BaseChartPainter<PieChartData> {
           )
           ..strokeWidth = section.radius
           ..style = PaintingStyle.fill;
+
 
         final bounds = Rect.fromCircle(
           center: center,
@@ -165,10 +174,44 @@ class PieChartPainter extends BaseChartPainter<PieChartData> {
       );
 
       drawSection(section, sectionPath, canvasWrapper);
-      drawSectionStroke(section, sectionPath, canvasWrapper, viewSize);
+      drawSectionStroke(section, sectionPath, canvasWrapper,viewSize,holder, );
+
+      if (((i == 1  && data.sections.length == 3 ) || (i == 0  && data.sections.length == 2)) && section.value > 0.1 ) {
+      final iconAngle = tempAngle + sectionDegree - 10;
+      print("icon angle: $iconAngle"); 
+      drawSectionImage(
+        canvasWrapper,
+        center,
+        iconAngle,
+        centerRadius + section.radius/2,
+        image
+      );
+    }
       tempAngle += sectionDegree;
     }
   }
+  void drawSectionImage(
+  CanvasWrapper canvasWrapper,
+  Offset center,
+  double angle,
+  double radius,
+  ui.Image? image
+) { 
+  if(image == null){
+    throw Exception("no image for chart");
+  }
+  final imageSize = 20.0; // Adjust as needed 
+  angle  = Utils().radians(angle);
+  print("center: x: ${center.dx} y:${center.dy} radius: $radius  cos: ${math.cos((angle+math.pi/2))} sin: ${math.sin((angle+math.pi/2))}");
+  final imageOffset = Offset(
+    center.dx + radius * math.cos(angle),
+    center.dy + radius * math.sin(angle),
+  );
+
+  final src = Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble());
+  final dst = Rect.fromLTWH(imageOffset.dx - imageSize / 2, imageOffset.dy - imageSize / 2, imageSize, imageSize);
+  canvasWrapper.canvas.drawImageRect(image, src, dst, Paint());
+}
 
   /// Generates a path around a section
   @visibleForTesting
@@ -309,36 +352,64 @@ class PieChartPainter extends BaseChartPainter<PieChartData> {
         sectionPath.getBounds(),
       )
       ..style = PaintingStyle.fill;
+      
     canvasWrapper.drawPath(sectionPath, _sectionPaint);
+
+    
   }
 
   @visibleForTesting
   void drawSectionStroke(
-    PieChartSectionData section,
-    Path sectionPath,
-    CanvasWrapper canvasWrapper,
-    Size viewSize,
-  ) {
-    if (section.borderSide.width != 0.0 &&
-        section.borderSide.color.opacity != 0.0) {
-      canvasWrapper
-        ..saveLayer(
-          Rect.fromLTWH(0, 0, viewSize.width, viewSize.height),
-          Paint(),
-        )
-        ..clipPath(sectionPath);
+  PieChartSectionData section,
+  Path sectionPath,
+  CanvasWrapper canvasWrapper,
+  Size viewSize,
+  PaintHolder<PieChartData> holder,
+) {
+  if (section.borderSide.width != 0.0 && section.borderSide.color.opacity != 0.0) {
+    final center = Offset(viewSize.width / 2, viewSize.height / 2);
+    final radius = calculateCenterRadius(viewSize, holder) + section.radius;
 
-      _sectionStrokePaint
-        ..strokeWidth = section.borderSide.width * 2
-        ..color = section.borderSide.color;
-      canvasWrapper
-        ..drawPath(
-          sectionPath,
-          _sectionStrokePaint,
-        )
-        ..restore();
-    }
+    // Draw the circular borders at the start and end of the section
+    _sectionStrokePaint
+      ..strokeWidth = section.borderSide.width
+      ..color = section.borderSide.color;
+
+    // Draw the start border
+    canvasWrapper.drawArc(
+      Rect.fromCircle(center: center, radius: radius),
+      sectionPath.computeMetrics().first.extractPath(0, 1).getBounds().center.direction,
+      section.borderSide.width,
+      true,
+      _sectionStrokePaint,
+    );
+
+    // Draw the end border
+    canvasWrapper.drawArc(
+      Rect.fromCircle(center: center, radius: radius),
+      sectionPath.computeMetrics().last.extractPath(0, 1).getBounds().center.direction,
+      section.borderSide.width,
+      true,
+      _sectionStrokePaint,
+    );
+
+    // Draw the main section stroke
+    canvasWrapper
+      ..saveLayer(
+        Rect.fromLTWH(0, 0, viewSize.width, viewSize.height),
+        Paint(),
+      )
+      ..clipPath(sectionPath);
+
+    canvasWrapper
+      ..drawPath(
+        sectionPath,
+        _sectionStrokePaint,
+      )
+      ..restore();
   }
+}
+  
 
   /// Calculates layout of overlaying elements, includes:
   /// - title text
