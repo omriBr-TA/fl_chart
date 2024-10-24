@@ -1,5 +1,4 @@
 import 'dart:math' as math;
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:fl_chart/fl_chart.dart';
 import 'package:fl_chart/src/chart/base/base_chart/base_chart_painter.dart';
@@ -21,7 +20,7 @@ class PieChartPainter extends BaseChartPainter<PieChartData> {
   /// [textScale] used for scaling texts inside the chart,
   /// parent can use [MediaQuery.textScaleFactor] to respect
   /// the system's font size.
-  /// 
+  ///
   final ui.Image? image;
 
   PieChartPainter({required this.image}) : super() {
@@ -56,7 +55,7 @@ class PieChartPainter extends BaseChartPainter<PieChartData> {
     final centerRadius = calculateCenterRadius(canvasWrapper.size, holder);
 
     drawCenterSpace(canvasWrapper, centerRadius, holder);
-    drawSections(canvasWrapper, sectionsAngle, centerRadius, holder,image);
+    drawSections(canvasWrapper, sectionsAngle, centerRadius, holder, image);
     drawTexts(context, canvasWrapper, holder, centerRadius);
   }
 
@@ -90,20 +89,14 @@ class PieChartPainter extends BaseChartPainter<PieChartData> {
   }
 
   @visibleForTesting
-  void drawSections(
-    CanvasWrapper canvasWrapper,
-    List<double> sectionsAngle,
-    double centerRadius,
-    PaintHolder<PieChartData> holder,
-    ui.Image? image
-  ) { 
+  void drawSections(CanvasWrapper canvasWrapper, List<double> sectionsAngle,
+      double centerRadius, PaintHolder<PieChartData> holder, ui.Image? image) {
     final data = holder.data;
     final viewSize = canvasWrapper.size;
 
     final center = Offset(viewSize.width / 2, viewSize.height / 2);
 
     var tempAngle = data.startDegreeOffset;
-    
 
     for (var i = 0; i < data.sections.length; i++) {
       final section = data.sections[i];
@@ -121,7 +114,6 @@ class PieChartPainter extends BaseChartPainter<PieChartData> {
           )
           ..strokeWidth = section.radius
           ..style = PaintingStyle.fill;
-
 
         final bounds = Rect.fromCircle(
           center: center,
@@ -169,49 +161,53 @@ class PieChartPainter extends BaseChartPainter<PieChartData> {
         data.sectionsSpace,
         tempAngle,
         sectionDegree,
+        data.roundedCornerDegrees,
+        data.roundedCornerRadius,
         center,
         centerRadius,
       );
 
       drawSection(section, sectionPath, canvasWrapper);
-      drawSectionStroke(section, sectionPath, canvasWrapper,viewSize,holder, );
-
-      if (((i == 1  && data.sections.length == 3 ) || (i == 0  && data.sections.length == 2)) && section.value > 0.1 ) {
-      final iconAngle = tempAngle + sectionDegree - 10;
-      print("icon angle: $iconAngle"); 
-      drawSectionImage(
+      drawSectionStroke(
+        section,
+        sectionPath,
         canvasWrapper,
-        center,
-        iconAngle,
-        centerRadius + section.radius/2,
-        image
+        viewSize,
+        holder,
       );
-    }
+
+      if (((i == 1 && data.sections.length == 3) ||
+              (i == 0 && data.sections.length == 2)) &&
+          section.value > 0.1) {
+        final iconAngle = tempAngle + sectionDegree - 10;
+        print("icon angle: $iconAngle");
+        drawSectionImage(canvasWrapper, center, iconAngle,
+            centerRadius + section.radius / 2, image);
+      }
       tempAngle += sectionDegree;
     }
   }
-  void drawSectionImage(
-  CanvasWrapper canvasWrapper,
-  Offset center,
-  double angle,
-  double radius,
-  ui.Image? image
-) { 
-  if(image == null){
-    throw Exception("no image for chart");
-  }
-  final imageSize = 20.0; // Adjust as needed 
-  angle  = Utils().radians(angle);
-  print("center: x: ${center.dx} y:${center.dy} radius: $radius  cos: ${math.cos((angle+math.pi/2))} sin: ${math.sin((angle+math.pi/2))}");
-  final imageOffset = Offset(
-    center.dx + radius * math.cos(angle),
-    center.dy + radius * math.sin(angle),
-  );
 
-  final src = Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble());
-  final dst = Rect.fromLTWH(imageOffset.dx - imageSize / 2, imageOffset.dy - imageSize / 2, imageSize, imageSize);
-  canvasWrapper.canvas.drawImageRect(image, src, dst, Paint());
-}
+  void drawSectionImage(CanvasWrapper canvasWrapper, Offset center,
+      double angle, double radius, ui.Image? image) {
+    if (image == null) {
+      throw Exception("no image for chart");
+    }
+    final imageSize = 14.0; // Adjust as needed
+    angle = Utils().radians(angle);
+    print(
+        "center: x: ${center.dx} y:${center.dy} radius: $radius  cos: ${math.cos((angle + math.pi / 2))} sin: ${math.sin((angle + math.pi / 2))}");
+    final imageOffset = Offset(
+      center.dx + radius * math.cos(angle),
+      center.dy + radius * math.sin(angle),
+    );
+
+    final src =
+        Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble());
+    final dst = Rect.fromLTWH(imageOffset.dx - imageSize / 2,
+        imageOffset.dy - imageSize / 2, imageSize, imageSize);
+    canvasWrapper.canvas.drawImageRect(image, src, dst, Paint());
+  }
 
   /// Generates a path around a section
   @visibleForTesting
@@ -220,6 +216,8 @@ class PieChartPainter extends BaseChartPainter<PieChartData> {
     double sectionSpace,
     double tempAngle,
     double sectionDegree,
+    double roundedCornerDegrees,
+    double roundedCornerRadius,
     Offset center,
     double centerRadius,
   ) {
@@ -261,10 +259,12 @@ class PieChartPainter extends BaseChartPainter<PieChartData> {
 
     /// Subtract section space from the sectionPath
     if (sectionSpace != 0) {
-      final startLineSeparatorPath = createRectPathAroundLine(
-        Line(startLineFrom, startLineTo),
-        sectionSpace,
-      );
+      // final startLineSeparatorPath = createRectPathAroundLine(
+      //   Line(startLineFrom, startLineTo),
+      //   sectionSpace,
+      // );
+      final startLineSeparatorPath =
+          createRectPathAroundLine(startLine, sectionSpace);
       try {
         sectionPath = Path.combine(
           PathOperation.difference,
@@ -276,8 +276,10 @@ class PieChartPainter extends BaseChartPainter<PieChartData> {
         /// https://github.com/imaNNeo/fl_chart/issues/955
       }
 
+      //    final endLineSeparatorPath =
+      //      createRectPathAroundLine(Line(endLineFrom, endLineTo), sectionSpace);
       final endLineSeparatorPath =
-          createRectPathAroundLine(Line(endLineFrom, endLineTo), sectionSpace);
+          createRectPathAroundLine(endLine, sectionSpace);
       try {
         sectionPath = Path.combine(
           PathOperation.difference,
@@ -288,6 +290,22 @@ class PieChartPainter extends BaseChartPainter<PieChartData> {
         /// It's a flutter engine issue with [Path.combine] in web-html renderer
         /// https://github.com/imaNNeo/fl_chart/issues/955
       }
+    }
+    if (roundedCornerRadius != 0 && roundedCornerDegrees != 0) {
+      final cornerCutout = createRoundedCornerCutout(
+          roundedCornerDegrees,
+          roundedCornerRadius,
+          center,
+          startLineFrom,
+          startLineTo,
+          startRadians,
+          endLineFrom,
+          endLineTo,
+          endRadians,
+          centerRadius,
+          section.radius);
+      sectionPath =
+          Path.combine(PathOperation.difference, sectionPath, cornerCutout);
     }
 
     return sectionPath;
@@ -339,6 +357,41 @@ class PieChartPainter extends BaseChartPainter<PieChartData> {
       ..lineTo(startPoint1.dx, startPoint1.dy);
   }
 
+  Path createRoundedCornerCutout(
+    double roundedCornerDegrees,
+    double roundedCornerRadius,
+    Offset center,
+    Offset startLineFrom,
+    Offset startLineTo,
+    double startRadians,
+    Offset endLineFrom,
+    Offset endLineTo,
+    double endRadians,
+    double centerRadius,
+    double sectionRadius,
+  ) {
+    final radius = Radius.circular(roundedCornerRadius);
+    final radians = Utils().radians(roundedCornerDegrees);
+    // Add extra 2 pixel margin to fix numeric issues.
+    final largeRadius = Radius.circular(centerRadius + sectionRadius + 2);
+
+    final cEndRadians = endRadians - radians;
+    final cEndLineDirection =
+        Offset(math.cos(cEndRadians), math.sin(cEndRadians));
+    final cEndLineFrom = center + cEndLineDirection * centerRadius;
+    final cEndLineTo = cEndLineFrom + cEndLineDirection * sectionRadius;
+
+    final endCorner = Path()
+      ..moveTo(cEndLineTo.dx, cEndLineTo.dy)
+      ..arcToPoint(endLineTo, radius: largeRadius)
+      ..lineTo(endLineFrom.dx, endLineFrom.dy)
+      ..lineTo(cEndLineFrom.dx, cEndLineFrom.dy)
+      ..arcToPoint(cEndLineTo, radius: radius, clockwise: false)
+      ..close();
+
+    return Path.combine(PathOperation.union, endCorner, endCorner);
+  }
+
   @visibleForTesting
   void drawSection(
     PieChartSectionData section,
@@ -352,64 +405,74 @@ class PieChartPainter extends BaseChartPainter<PieChartData> {
         sectionPath.getBounds(),
       )
       ..style = PaintingStyle.fill;
-      
-    canvasWrapper.drawPath(sectionPath, _sectionPaint);
 
-    
+    canvasWrapper.drawPath(sectionPath, _sectionPaint);
   }
 
   @visibleForTesting
   void drawSectionStroke(
-  PieChartSectionData section,
-  Path sectionPath,
-  CanvasWrapper canvasWrapper,
-  Size viewSize,
-  PaintHolder<PieChartData> holder,
-) {
-  if (section.borderSide.width != 0.0 && section.borderSide.color.opacity != 0.0) {
-    final center = Offset(viewSize.width / 2, viewSize.height / 2);
-    final radius = calculateCenterRadius(viewSize, holder) + section.radius;
+    PieChartSectionData section,
+    Path sectionPath,
+    CanvasWrapper canvasWrapper,
+    Size viewSize,
+    PaintHolder<PieChartData> holder,
+  ) {
+    if (section.borderSide.width != 0.0 &&
+        section.borderSide.color.opacity != 0.0) {
+      final center = Offset(viewSize.width / 2, viewSize.height / 2);
+      final radius = calculateCenterRadius(viewSize, holder) + section.radius;
 
-    // Draw the circular borders at the start and end of the section
-    _sectionStrokePaint
-      ..strokeWidth = section.borderSide.width
-      ..color = section.borderSide.color;
+      // Draw the circular borders at the start and end of the section
+      _sectionStrokePaint
+        ..strokeWidth = section.borderSide.width
+        ..color = section.borderSide.color;
 
-    // Draw the start border
-    canvasWrapper.drawArc(
-      Rect.fromCircle(center: center, radius: radius),
-      sectionPath.computeMetrics().first.extractPath(0, 1).getBounds().center.direction,
-      section.borderSide.width,
-      true,
-      _sectionStrokePaint,
-    );
-
-    // Draw the end border
-    canvasWrapper.drawArc(
-      Rect.fromCircle(center: center, radius: radius),
-      sectionPath.computeMetrics().last.extractPath(0, 1).getBounds().center.direction,
-      section.borderSide.width,
-      true,
-      _sectionStrokePaint,
-    );
-
-    // Draw the main section stroke
-    canvasWrapper
-      ..saveLayer(
-        Rect.fromLTWH(0, 0, viewSize.width, viewSize.height),
-        Paint(),
-      )
-      ..clipPath(sectionPath);
-
-    canvasWrapper
-      ..drawPath(
-        sectionPath,
+      // Draw the start border
+      canvasWrapper.drawArc(
+        Rect.fromCircle(center: center, radius: radius),
+        sectionPath
+            .computeMetrics()
+            .first
+            .extractPath(0, 1)
+            .getBounds()
+            .center
+            .direction,
+        section.borderSide.width,
+        true,
         _sectionStrokePaint,
-      )
-      ..restore();
+      );
+
+      // Draw the end border
+      canvasWrapper.drawArc(
+        Rect.fromCircle(center: center, radius: radius),
+        sectionPath
+            .computeMetrics()
+            .last
+            .extractPath(0, 1)
+            .getBounds()
+            .center
+            .direction,
+        section.borderSide.width,
+        true,
+        _sectionStrokePaint,
+      );
+
+      // Draw the main section stroke
+      canvasWrapper
+        ..saveLayer(
+          Rect.fromLTWH(0, 0, viewSize.width, viewSize.height),
+          Paint(),
+        )
+        ..clipPath(sectionPath);
+
+      canvasWrapper
+        ..drawPath(
+          sectionPath,
+          _sectionStrokePaint,
+        )
+        ..restore();
+    }
   }
-}
-  
 
   /// Calculates layout of overlaying elements, includes:
   /// - title text

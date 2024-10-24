@@ -28,6 +28,8 @@ class PieChartData extends BaseChartData with EquatableMixin {
     Color? centerSpaceColor,
     double? sectionsSpace,
     double? startDegreeOffset,
+    double? roundedCornerDegrees,
+    double? roundedCornerRadius,
     PieTouchData? pieTouchData,
     FlBorderData? borderData,
     bool? titleSunbeamLayout,
@@ -36,6 +38,8 @@ class PieChartData extends BaseChartData with EquatableMixin {
         centerSpaceRadius = centerSpaceRadius ?? double.infinity,
         centerSpaceColor = centerSpaceColor ?? Colors.transparent,
         sectionsSpace = sectionsSpace ?? 2,
+        roundedCornerDegrees = roundedCornerDegrees ?? 0,
+        roundedCornerRadius = roundedCornerRadius ?? 0,
         startDegreeOffset = startDegreeOffset ?? 0,
         pieTouchData = pieTouchData ?? PieTouchData(),
         titleSunbeamLayout = titleSunbeamLayout ?? false,
@@ -68,6 +72,14 @@ class PieChartData extends BaseChartData with EquatableMixin {
   /// Whether to rotate the titles on each section of the chart
   final bool titleSunbeamLayout;
 
+  /// Defines the degrees to which cut back with rounded corners.
+  /// [roundedCornerRadius] must also be set for this to work.
+  final double roundedCornerDegrees;
+
+  /// Defines the radius of the arc of the rounded corners.
+  /// [roundedCornerDegrees] must also be set for this to work.
+  final double roundedCornerRadius;
+
   /// We hold this value to determine weight of each [PieChartSectionData.value].
   double get sumValue => sections
       .map((data) => data.value)
@@ -80,6 +92,8 @@ class PieChartData extends BaseChartData with EquatableMixin {
     double? centerSpaceRadius,
     Color? centerSpaceColor,
     double? sectionsSpace,
+    double? roundedCornerDegrees,
+    double? roundedCornerRadius,
     double? startDegreeOffset,
     PieTouchData? pieTouchData,
     FlBorderData? borderData,
@@ -90,6 +104,8 @@ class PieChartData extends BaseChartData with EquatableMixin {
       centerSpaceRadius: centerSpaceRadius ?? this.centerSpaceRadius,
       centerSpaceColor: centerSpaceColor ?? this.centerSpaceColor,
       sectionsSpace: sectionsSpace ?? this.sectionsSpace,
+      roundedCornerDegrees: roundedCornerDegrees ?? this.roundedCornerDegrees,
+      roundedCornerRadius: roundedCornerRadius ?? this.roundedCornerRadius,
       startDegreeOffset: startDegreeOffset ?? this.startDegreeOffset,
       pieTouchData: pieTouchData ?? this.pieTouchData,
       borderData: borderData ?? this.borderData,
@@ -111,6 +127,10 @@ class PieChartData extends BaseChartData with EquatableMixin {
         ),
         pieTouchData: b.pieTouchData,
         sectionsSpace: lerpDouble(a.sectionsSpace, b.sectionsSpace, t),
+        roundedCornerDegrees:
+            lerpDouble(a.roundedCornerDegrees, b.roundedCornerDegrees, t),
+        roundedCornerRadius:
+            lerpDouble(a.roundedCornerRadius, b.roundedCornerRadius, t),
         startDegreeOffset:
             lerpDouble(a.startDegreeOffset, b.startDegreeOffset, t),
         sections: lerpPieChartSectionDataList(a.sections, b.sections, t),
@@ -129,6 +149,8 @@ class PieChartData extends BaseChartData with EquatableMixin {
         centerSpaceColor,
         pieTouchData,
         sectionsSpace,
+        roundedCornerDegrees,
+        roundedCornerRadius,
         startDegreeOffset,
         borderData,
         titleSunbeamLayout,
